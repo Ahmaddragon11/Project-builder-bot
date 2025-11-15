@@ -33,7 +33,7 @@ class AIService:
             f"- Documentation: README.md files with clear instructions.\n\n"
             f"Always strive to create a complete and runnable project. If a project requires dependencies, "
             f"include appropriate manifest files (e.g., `requirements.txt` for Python, `package.json` for Node.js) "
-            f"and mention installation steps in `additional_info`.\n\n"
+            f"and mention installation steps in `additional_info`. Ensure the project structure is logical and follows best practices for the chosen technologies.\n\n"
             f"Project Name: {project_name}\n"
             f"Project Description: {project_description}\n\n"
             f"Example output format:\n"

@@ -2,8 +2,9 @@ import logging
 import os
 import asyncio
 import json # Added for parsing AI response
+import shutil # Added for project cleanup
 
-from telegram import Update
+from telegram import Update, ChatAction
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 from src.config import TELEGRAM_BOT_TOKEN
@@ -36,6 +37,20 @@ async def new_project(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     user_projects[chat_id] = {'state': 'awaiting_name'}
     await update.message.reply_text('أهلاً بك! ما هو اسم مشروعك؟')
 
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message when the command /help is issued."""
+    help_text = (
+        "أهلاً بك في بوت إنشاء المشاريع بالذكاء الاصطناعي!\n\n"
+        "يمكنني مساعدتك في إنشاء مشاريع برمجية متنوعة بناءً على وصفك.\n\n"
+        "الأوامر المتاحة:\n"
+        "/start - لبدء التفاعل مع البوت.\n"
+        "/newproject - لبدء عملية إنشاء مشروع جديد.\n"
+        "/help - لعرض هذه الرسالة المساعدة.\n\n"
+        "لبدء مشروع جديد، أرسل /newproject وسأطلب منك اسم المشروع ووصفه. "
+        "سأقوم بعد ذلك بإنشاء المشروع وإرساله إليك كملف مضغوط."
+    )
+    await update.message.reply_text(help_text)
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle incoming messages for project creation."""
     chat_id = update.message.chat_id
@@ -50,6 +65,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             user_projects[chat_id]['project_description'] = text
             user_projects[chat_id]['state'] = 'processing'
             await update.message.reply_text(f'شكراً لك! مشروعك "{user_projects[chat_id]["project_name"]}" قيد الإنشاء الآن. قد يستغرق هذا بعض الوقت...')
+            await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
 
             # --- AI Integration and Project Creation Logic ---
             project_name = user_projects[chat_id]['project_name']
@@ -76,7 +92,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 await update.message.reply_text('عذراً، حدث خطأ أثناء إنشاء مشروعك. يرجى المحاولة مرة أخرى لاحقاً.')
             finally:
                 # Clear user state
-                del user_projects[chat_id]
+                if chat_id in user_projects:
+                    del user_projects[chat_id]
+                # Clean up project files if they were created
+                if project_path and zip_file_path:
+                    project_manager.clean_up_project_files(project_path, zip_file_path)
+                elif project_path: # If zipping failed but files were created
+                    shutil.rmtree(project_path)
+                    logger.info(f"Removed project directory: {project_path}")
     else:
         await update.message.reply_text('أنا هنا لإنشاء المشاريع! أرسل /newproject لبدء مشروع جديد.')
 
@@ -87,6 +110,7 @@ def main() -> None:
     # On different commands - answer in Telegram
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("newproject", new_project))
+    application.add_handler(CommandHandler("help", help_command))
 
     # On non command i.e message - echo the message on Telegram
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
