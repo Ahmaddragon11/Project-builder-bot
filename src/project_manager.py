@@ -45,6 +45,3 @@ class ProjectManager:
         if os.path.exists(zip_file_path):
             os.remove(zip_file_path)
             logger.info(f"Removed zip file: {zip_file_path}")
-        if os.path.exists(project_path):
-            shutil.rmtree(project_path)
-            logger.info(f"Removed project directory: {project_path}")

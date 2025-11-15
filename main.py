@@ -75,10 +75,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 logger.error("Error during project creation: %s", e)
                 await update.message.reply_text('عذراً، حدث خطأ أثناء إنشاء مشروعك. يرجى المحاولة مرة أخرى لاحقاً.')
             finally:
-                # Clean up temporary files
-                if project_path and zip_file_path:
-                    project_manager.clean_up_project_files(project_path, zip_file_path)
-                del user_projects[chat_id] # Clear user state
+                # Clear user state
+                del user_projects[chat_id]
     else:
         await update.message.reply_text('أنا هنا لإنشاء المشاريع! أرسل /newproject لبدء مشروع جديد.')
 
